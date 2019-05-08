@@ -53,6 +53,7 @@ function printHelp() {
   echo "    -a - launch certificate authorities (no certificate authorities are launched by default)"
   echo "    -n - do not deploy chaincode (abstore chaincode is deployed by default)"
   echo "    -v - verbose mode"
+  echo "    -p - use china crypto standard"
   echo "  byfn.sh -h (print this message)"
   echo
   echo "Typically, one would first generate the required certificates and "
@@ -359,7 +360,14 @@ function generateCerts() {
     rm -Rf crypto-config
   fi
   set -x
-  cryptogen generate --config=./crypto-config.yaml
+  #cryptogen generate --config=./crypto-config.yaml
+  if [ "${CRYPTO_STANDARD}" = "sm2" -o "$CRYPTO_STANDARD" = "SM2" ]; then
+    echo "Using 'SM2' crypto algo to generate MSPs"
+    cryptogen generate --config=./crypto-config.yaml --sm2
+  else
+    cryptogen generate --config=./crypto-config.yaml
+  fi
+  
   res=$?
   set +x
   if [ $res -ne 0 ]; then
@@ -509,6 +517,10 @@ LANGUAGE=golang
 IMAGETAG="latest"
 # default consensus type
 CONSENSUS_TYPE="solo"
+
+#crypto standard
+CRYPTO_STANDARD="ecdsa"
+
 # Parse commandline args
 if [ "$1" = "-m" ]; then # supports old usage, muscle memory is powerful!
   shift
@@ -531,7 +543,7 @@ else
   exit 1
 fi
 
-while getopts "h?c:t:d:f:s:l:i:o:anv" opt; do
+while getopts "h?c:t:d:f:s:l:i:o:p:anv" opt; do
   case "$opt" in
   h | \?)
     printHelp
@@ -566,6 +578,9 @@ while getopts "h?c:t:d:f:s:l:i:o:anv" opt; do
     ;;
   n)
     NO_CHAINCODE=true
+    ;;
+  p)
+    CRYPTO_STANDARD=$OPTARG
     ;;
   v)
     VERBOSE=true
